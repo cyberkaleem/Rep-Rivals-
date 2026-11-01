@@ -16,3 +16,8 @@ build/
 
 # Local files
 .DS_Store
+
+# Reproducible local model/WASM assets and browser test artifacts
+**/public/vision/
+test-results/
+playwright-report/

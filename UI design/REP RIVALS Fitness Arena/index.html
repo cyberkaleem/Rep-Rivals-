@@ -3,6 +3,8 @@
   <head>
     <!-- figma:head-start -->
     <meta charset="UTF-8" />
+    <!-- Keep inference and SDK telemetry off external connections. Extend only for an explicitly configured backend. -->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' ws://localhost:* ws://127.0.0.1:*" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><!-- figma:title --></title>
     <!-- figma:head-end -->

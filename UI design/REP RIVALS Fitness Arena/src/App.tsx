@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import heroImage from './assets/rep-rivals-hero.jpg'
 
 type Screen = 'home' | 'dashboard' | 'lobby' | 'countdown' | 'battle' | 'results'
@@ -145,6 +146,7 @@ function RankBadge({ label = 'ROOKIE' }: { label?: string }) {
 }
 
 function Dashboard({ go }: { go: (s: Screen) => void }) {
+  const navigate = useNavigate()
   return (
     <main className="app-shell dashboard">
       <section className="dash-top">
@@ -164,7 +166,7 @@ function Dashboard({ go }: { go: (s: Screen) => void }) {
         <div className="dash-actions">
           <button className="battle-action" onClick={() => go('lobby')}><div><p className="kicker">RANKED / PUSH-UPS</p><h2>ENTER<br />BATTLE</h2><span>FIND YOUR NEXT RIVAL <Icon name="arrow" /></span></div><Icon name="users" size={62} /></button>
           <div className="sub-actions">
-            <button><Icon name="target" /><span><small>TRAIN ALONE</small><b>SOLO TRAINING</b></span><Icon name="chevron" /></button>
+            <button onClick={() => navigate('/training')}><Icon name="target" /><span><small>REAL CAMERA</small><b>SOLO TRAINING</b></span><Icon name="chevron" /></button>
             <button><Icon name="flame" /><span><small>3 REMAINING</small><b>DAILY ORDERS</b></span><Icon name="chevron" /></button>
           </div>
         </div>
