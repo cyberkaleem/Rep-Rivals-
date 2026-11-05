@@ -35,18 +35,20 @@ function Logo({ onClick }: { onClick: () => void }) {
 }
 
 function Header({ screen, go }: { screen: Screen; go: (s: Screen) => void }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   return (
     <header className={`header ${screen !== 'home' ? 'header-solid' : ''}`}>
       <Logo onClick={() => go('home')} />
       <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Toggle menu"><Icon name={open ? 'close' : 'menu'} /></button>
       <nav className={open ? 'open' : ''}>
+        <button onClick={() => navigate('/account')}>Player account</button>
         <button onClick={() => { go('home'); setOpen(false) }}>The game</button>
         <button onClick={() => { go('dashboard'); setOpen(false) }}>Command center</button>
         <button onClick={() => { go('lobby'); setOpen(false) }}>Battle arena</button>
         <button onClick={() => { go('dashboard'); setOpen(false) }}>Ranks</button>
       </nav>
-      <button className="header-cta" onClick={() => go('dashboard')}>ENTER ARENA <Icon name="arrow" size={16} /></button>
+      <button className="header-cta" onClick={() => navigate('/account')}>PLAYER ACCOUNT <Icon name="arrow" size={16} /></button>
     </header>
   )
 }
@@ -56,6 +58,7 @@ const EmberButton = ({ children, onClick, secondary = false, disabled = false }:
 )
 
 function Home({ go }: { go: (s: Screen) => void }) {
+  const navigate = useNavigate()
   return (
     <main>
       <section className="hero">
@@ -67,7 +70,7 @@ function Home({ go }: { go: (s: Screen) => void }) {
           <h1>YOUR BODY<br />IS THE <em>CONTROLLER.</em></h1>
           <p>Turn every rep into progress. Challenge real rivals.<br className="desktop-only" /> Rise through the ranks.</p>
           <div className="hero-actions">
-            <EmberButton onClick={() => go('dashboard')}>ENTER THE ARENA</EmberButton>
+            <EmberButton onClick={() => navigate('/account')}>ENTER THE ARENA</EmberButton>
             <EmberButton secondary onClick={() => document.querySelector('#system')?.scrollIntoView({ behavior: 'smooth' })}>EXPLORE THE GAME</EmberButton>
           </div>
         </div>

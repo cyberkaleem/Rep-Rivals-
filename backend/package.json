@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.16.1",
-  "engines": { "node": "^22.12.0 || ^24.0.0 || >=26.0.0" },
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "pnpm db:generate && tsc -p tsconfig.build.json",
@@ -12,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "verify:live": "node tests/live-health.mjs",
+    "verify:auth": "node --import tsx tests/live-auth.mjs",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate:dev": "prisma migrate dev --create-only",
@@ -19,10 +22,12 @@
     "db:migrate:status": "prisma migrate status"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.7.3",
     "helmet": "^8.1.0",
     "zod": "^4.0.0"
   },

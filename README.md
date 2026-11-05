@@ -1,6 +1,6 @@
 # REP RIVALS
 
-Camera-powered workout competition, under development. Local push-up training has passed an initial real-world test reported by the project owner. The separate Express API has verified read-only connectivity to Neon through Prisma. See the [backend setup and Phase 2A verification](docs/PHASE-2A.md).
+Camera-powered workout competition, under development. Players can register, log in, restore their session and open their account. Accounts and sessions persist on the Neon development branch. Local push-up training has passed an initial real-world test reported by the project owner. See the [authentication setup and Phase 2B verification](docs/PHASE-2B.md) and [backend foundation](docs/PHASE-2A.md).
 
 ## Run the camera phase
 
@@ -17,7 +17,7 @@ Open `http://127.0.0.1:5173/training`. Setup downloads Google's versioned lite p
 
 No environment variables or credentials are needed for this phase. Root `.env` is untouched and ignored. Do not add a Vite `envDir` pointing to the repository root or put database credentials in `VITE_*` variables.
 
-The HTML connection policy allows same-origin requests and loopback development WebSockets only. It blocks MediaPipe's default external usage telemetry. The existing Google Fonts stylesheet remains external; this is not a promise of zero network requests. When adding the backend, explicitly allow only its origin (or use a same-origin proxy), and retain the telemetry restriction. See [MediaPipe's privacy notice](https://developers.google.com/edge/mediapipe/solutions/tasks#mediapipe_tasks_privacy_notice).
+The HTML connection policy allows same-origin requests and loopback development WebSockets. Vite proxies same-origin account requests under `/api` to the backend. MediaPipe's external usage telemetry is blocked. The existing Google Fonts stylesheet is external. See [MediaPipe's privacy notice](https://developers.google.com/edge/mediapipe/solutions/tasks#mediapipe_tasks_privacy_notice).
 
 ## What works
 
@@ -66,7 +66,7 @@ See [phase status and real-device checklist](docs/PHASE-1.md). A complete two-pl
 
 Not deployed. A future static deployment must run `pnpm setup:vision` before `pnpm build`, publish `dist`, and rewrite application routes to `index.html` while serving model/WASM assets as files. Camera access requires HTTPS except on localhost. Plain HTTP to a LAN IP generally cannot access the camera.
 
-Remaining P0 work includes authenticated profiles and their first database migration, saved workouts, private Socket.IO rooms, server-controlled timing and scoring, transactional results and rewards, and animated 3D avatars. P1 covers dashboard/history, ranks, daily challenges and cosmetics. The [master specification](docs/MASTER-SPECIFICATION.md) lists the later exercise detectors and matchmaking features.
+Remaining P0 work includes player profiles, saved workouts, private Socket.IO rooms, server-controlled timing and scoring, transactional results and rewards, and animated 3D avatars. P1 covers dashboard/history, ranks, daily challenges and cosmetics. The [master specification](docs/MASTER-SPECIFICATION.md) lists the later exercise detectors and matchmaking features.
 
 The backend uses a pooled Neon connection for application traffic. Future migrations require a separate direct connection. Plan to host the HTTP and Socket.IO server on a persistent Node host.
 

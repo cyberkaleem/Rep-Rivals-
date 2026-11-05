@@ -1,0 +1,22 @@
+.account-panel {
+  max-width: 440px;
+  margin: clamp(24px, 7vh, 80px) auto;
+  padding: clamp(20px, 4vw, 36px);
+  background: var(--charcoal);
+  border: 1px solid #373b3e;
+  border-top: 3px solid var(--ember);
+  display: grid;
+  gap: 24px;
+}
+.account-panel h1 { font: 800 clamp(36px, 5vw, 48px)/1 var(--display); text-transform: uppercase; }
+.account-panel form, .account-panel label, .account-panel dl { display: grid; gap: 8px; }
+.account-panel form { gap: 18px; }
+.account-panel label, .account-panel dt { font-size: 14px; color: #d4d8da; }
+.account-panel input { width: 100%; min-width: 0; background: #0e1011; color: white; padding: 12px; border: 1px solid #555b60; border-radius: 2px; }
+.account-panel input:focus { outline: 2px solid var(--ember); }
+.account-panel small, .account-panel dt { color: #b2b8bc; }
+.account-panel dd { overflow-wrap: anywhere; margin-bottom: 8px; }
+.account-panel [role=alert] { color: #ffb198; }
+.account-panel .account-action { background: var(--ember); color: #17100c; text-align: center; padding: 13px; font-weight: 700; }
+.account-panel a:not(.account-action), .account-panel button:not(.account-action) { text-decoration: underline; color: #eac4b4; }
+.account-panel button:disabled { opacity: .65; }

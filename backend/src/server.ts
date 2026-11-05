@@ -4,10 +4,11 @@ import { pathToFileURL } from 'node:url'
 import { createApp } from './app.js'
 import { ConfigurationError, parseRuntimeConfig, readSettings } from './config/env.js'
 import { createDatabase } from './db/client.js'
+import { createAuthService } from './auth/service.js'
 
 export async function startServer(config = parseRuntimeConfig(readSettings())) {
   const database = createDatabase(config.databaseUrl)
-  const server = createServer(createApp(config.origins, database.check))
+  const server = createServer(createApp(config.origins, database.check, createAuthService(database.prisma), config.production))
   try {
     server.listen(config.port, config.host)
     await once(server, 'listening')

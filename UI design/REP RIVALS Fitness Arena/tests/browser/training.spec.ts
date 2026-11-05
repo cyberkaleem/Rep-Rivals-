@@ -91,7 +91,7 @@ test("real MediaPipe loads on fake video, cannot calibrate without a body, and r
       (video) => (video.srcObject as MediaStream).getVideoTracks()[0],
     )
   await page.getByRole("link", { name: "Back to home" }).click()
-  await expect(page).toHaveURL("http://127.0.0.1:5173/")
+  await expect(page).toHaveURL("/")
   await expect.poll(() => restarted.evaluate((t) => t.readyState)).toBe("ended")
   expect(uploads).toEqual([])
   expect(errors).toEqual([])

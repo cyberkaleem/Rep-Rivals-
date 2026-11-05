@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react"
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom"
 import App from "../App"
+import { AccountPage, AuthForm } from "../features/auth/AccountPages"
 import "../features/solo-training/training.css"
 
 const TrainingPage = lazy(
@@ -12,6 +13,9 @@ export default function AppRouter() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Suspense fallback={<p role="status">Loading training…</p>}>
         <Routes>
+          <Route path="/register" element={<AuthForm key="register" register />} />
+          <Route path="/login" element={<AuthForm key="login" />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route
             path="/"
             element={

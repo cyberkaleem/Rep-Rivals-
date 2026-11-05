@@ -3,7 +3,7 @@ import { parseEnv } from 'node:util'
 import { z } from 'zod'
 
 const rootEnv = new URL('../../../.env', import.meta.url)
-const settings = ['DATABASE_URL', 'DIRECT_URL', 'HOST', 'PORT', 'CORS_ORIGINS'] as const
+const settings = ['DATABASE_URL', 'DIRECT_URL', 'HOST', 'PORT', 'CORS_ORIGINS', 'NODE_ENV'] as const
 type Settings = Partial<Record<typeof settings[number], string>>
 
 // The relative path is identical in src/config and dist/config. Injected settings win.
@@ -47,6 +47,9 @@ const httpOrigin = z.string().refine(value => {
 })
 
 export function parseRuntimeConfig(settings: Settings) {
+  const environment = z.enum(['development', 'test', 'production']).safeParse(settings.NODE_ENV ?? 'development')
+  if (!environment.success) throw new ConfigurationError('NODE_ENV')
+  const production = environment.data === 'production'
   const port = z.coerce.number().int().min(1).max(65535).safeParse(settings.PORT ?? 4000)
   if (!port.success) throw new ConfigurationError('PORT')
   const host = z.string().trim().min(1).safeParse(settings.HOST ?? '127.0.0.1')
@@ -55,5 +58,8 @@ export function parseRuntimeConfig(settings: Settings) {
     settings.CORS_ORIGINS?.split(',').map(origin => origin.trim()) ?? defaultOrigins,
   )
   if (!origins.success) throw new ConfigurationError('CORS_ORIGINS')
-  return { port: port.data, host: host.data, origins: origins.data, databaseUrl: neonUrl(settings.DATABASE_URL, 'DATABASE_URL') }
+  if (production && (!settings.CORS_ORIGINS || origins.data.some(origin => !origin.startsWith('https://')))) {
+    throw new ConfigurationError('CORS_ORIGINS')
+  }
+  return { port: port.data, host: host.data, origins: origins.data, production, databaseUrl: neonUrl(settings.DATABASE_URL, 'DATABASE_URL') }
 }
