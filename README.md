@@ -1,6 +1,6 @@
 # REP RIVALS
 
-Camera-powered workout competition, under development. The current implemented slice is **local push-up training**. The original Figma Make interface remains a clearly labeled design preview with sample data and simulated battles. It does not represent completed multiplayer, authentication, persistence, or 3D functionality.
+Camera-powered workout competition, under development. Local push-up training has passed an initial real-world test reported by the project owner. The separate Express API has verified read-only connectivity to Neon through Prisma. See the [backend setup and Phase 2A verification](docs/PHASE-2A.md).
 
 ## Run the camera phase
 
@@ -36,6 +36,7 @@ The measurements are heuristic proxies, **not clinically validated form assessme
 ```text
 Rep Rivals/
   docs/                         specification, phase status and physical test checklist
+  backend/                      Express HTTP server, Prisma client and health checks
   UI design/REP RIVALS Fitness Arena/
     src/app/AppRouter.tsx       real /training route and labeled design reference
     src/features/
@@ -45,7 +46,7 @@ Rep Rivals/
     tests/browser/             permission, responsiveness and model smoke tests
 ```
 
-`AcceptedRep` in `computer-vision/types.ts` is local evidence, not an official score. The hook accepts an `onRep` callback for later networking integration. The future server must authenticate the player and independently validate ordering, rate and match state before broadcasting an official accepted score. No camera frames or pose history should be sent. Keep server code in a separate root `backend/` package and future shared transport contracts in `shared/`; neither is implemented yet.
+`AcceptedRep` in `computer-vision/types.ts` carries local evidence. The hook accepts an `onRep` callback for later networking integration. The server will need to authenticate the player and validate ordering, rate and match state before broadcasting an official score. Camera frames and pose history stay on the device.
 
 ## Checks
 
@@ -65,8 +66,8 @@ See [phase status and real-device checklist](docs/PHASE-1.md). A complete two-pl
 
 Not deployed. A future static deployment must run `pnpm setup:vision` before `pnpm build`, publish `dist`, and rewrite application routes to `index.html` while serving model/WASM assets as files. Camera access requires HTTPS except on localhost. Plain HTTP to a LAN IP generally cannot access the camera.
 
-Remaining P0: authenticated profiles, Neon PostgreSQL and Prisma migrations, saved workouts, Socket.IO private rooms and authoritative timing/scoring, transactional results and rewards, and genuine animated 3D avatars. P1: real dashboard/history, ranks, daily challenges and cosmetics. Other exercise detectors and public matchmaking remain planned P2. The supplied full specification is preserved in `docs/MASTER-SPECIFICATION.md`.
+Remaining P0 work includes authenticated profiles and their first database migration, saved workouts, private Socket.IO rooms, server-controlled timing and scoring, transactional results and rewards, and animated 3D avatars. P1 covers dashboard/history, ranks, daily challenges and cosmetics. The [master specification](docs/MASTER-SPECIFICATION.md) lists the later exercise detectors and matchmaking features.
 
-There are no database migration commands or verified Neon connection yet. Later backend setup will use server-only `DATABASE_URL` and a version-compatible direct migration URL. Use a persistent Node host for Socket.IO, not a short-lived serverless function.
+The backend uses a pooled Neon connection for application traffic. Future migrations require a separate direct connection. Plan to host the HTTP and Socket.IO server on a persistent Node host.
 
 References: [MediaPipe web guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js), [PoseLandmarker API](https://developers.google.com/edge/api/mediapipe/js/tasks-vision.poselandmarker). The installed package declarations were checked for the timestamped `detectForVideo(video, timestampMs)` signature.

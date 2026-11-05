@@ -1,0 +1,12 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Phase 2A uses only a raw connectivity probe. Domain models begin in Phase 2B.
