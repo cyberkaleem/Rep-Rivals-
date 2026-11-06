@@ -11,9 +11,15 @@
     "dev": "node scripts/check-vision.mjs && vite",
     "build": "node scripts/check-vision.mjs && vite build",
     "preview": "vite preview",
+    "android:sync": "pnpm setup:vision && pnpm build --mode android && cap sync android && pnpm android:verify",
+    "android:verify": "node scripts/check-android-assets.mjs",
+    "android:open": "cap open android",
+    "android:build": "pnpm android:sync && cd android && gradlew.bat assembleDebug",
     "format": "oxfmt"
   },
   "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/core": "8.6.0",
     "@mediapipe/tasks-vision": "1.2.0",
     "lucide-react": "1.66.0",
     "react": "^19.0.0",
@@ -21,6 +27,7 @@
     "react-router-dom": "7.18.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.6.0",
     "@playwright/test": "1.64.1",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.0.0",

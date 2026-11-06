@@ -11,15 +11,17 @@ import siteConfiguration from './.figma/make/site.json'
 export default defineConfig(({ mode }) => {
   // .figma/make/deploy-preview passes `--mode development` for cached-preview builds.
   const emitSourcemaps = mode === 'development'
+  const androidBuild = mode === 'android'
 
   return {
-    base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
+    base: androidBuild ? '/' : process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
     build: {
       sourcemap: emitSourcemaps ? 'inline' : false,
       minify: !emitSourcemaps,
     },
     plugins: [
 react(),
+      ...(androidBuild ? [androidPackaging()] : []),
       tailwindcss(),
       figmaSiteConfiguration(siteConfiguration),
       figmaErrorOverlayReplay(),
@@ -49,6 +51,17 @@ react(),
     },
   }
 })
+
+// Preserve browser HMR policy while keeping development sockets out of the APK.
+function androidPackaging(): Plugin {
+  return {
+    name: 'rep-rivals-android-packaging',
+    apply: 'build',
+    transformIndexHtml(html) {
+      return html.replace("connect-src 'self' ws://localhost:* ws://127.0.0.1:*", "connect-src 'self'")
+    },
+  }
+}
 
 type FigmaSiteConfiguration = {
   title?: string

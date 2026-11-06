@@ -21,3 +21,10 @@ build/
 **/public/vision/
 test-results/
 playwright-report/
+
+# Local Android build tool downloads
+.tools/
+
+# Local IDE settings
+.idea/
+**/.idea/
