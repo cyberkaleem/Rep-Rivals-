@@ -4,7 +4,7 @@ import { databaseDiagnostic } from '../db/diagnostics.js'
 import { ApiError } from '../middleware/errors.js'
 
 const healthQuery = z.strictObject({})
-const healthy = { status: 'ok', service: 'rep-rivals-api' } as const
+export const healthy = { status: 'ok', service: 'rep-rivals-api' } as const
 
 export function healthRouter(checkDatabase: () => Promise<void>) {
   const router = Router()

@@ -24,6 +24,7 @@ test('root-style settings load by path, exposing only API configuration with inj
 
 test('runtime accepts the pooled endpoint and enforces TLS peer verification', () => {
   const config = parseRuntimeConfig({ DATABASE_URL: fixture })
+  assert.equal(config.healthOnly, false)
   assert.equal(new URL(config.databaseUrl).searchParams.get('sslmode'), 'verify-full')
   assert.ok(config.origins.includes('http://127.0.0.1:5173'))
 })

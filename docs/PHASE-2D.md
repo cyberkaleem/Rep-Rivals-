@@ -60,6 +60,14 @@ The listener binds to Windows loopback. ADB reverse carries TLS to it. Only this
 
 ## Hosting and configuration
 
+### First Render smoke deployment
+
+On the manual Render service, set `REP_RIVALS_HEALTH_ONLY=true` **before deploying** the commit containing this safeguard. Use root directory `backend`, build command `corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm build`, start command `pnpm start`, health check `/api/health`, `NODE_ENV=production` and `HOST=0.0.0.0`. Render supplies `PORT`. Smoke mode needs no database URL, browser origin or proxy trust setting at runtime.
+
+Verify that exactly `GET /api/health` returns 200 with the service name. Check that `HEAD /api/health`, `OPTIONS /api/health`, `GET /api/health/`, `GET /api/health/database` and `POST /api/auth/native/login` return 404. Use a plain GET for the liveness check. Smoke mode compares the method and raw request target and never mounts the database or authentication routers.
+
+**Restore full service:** configure the pooled `DATABASE_URL`, exact HTTPS `CORS_ORIGINS`, and verified proxy settings for native HTTPS first. Remove `REP_RIVALS_HEALTH_ONLY` or set it to the literal `false`, then restart/redeploy and verify readiness and authentication. To roll back to restricted service, set it to `true` again, redeploy a version containing this safeguard and repeat the 200/404 checks. Any other flag value fails startup.
+
 No authorized public hosting project was configured. The Render Blueprint prepares a single Node web service tied to the backend directory with automatic deploys off, dependency installation, Prisma client generation/TypeScript compilation, compiled Node startup and an HTTP health probe. It performs no migration. Express keeps its HTTP server, bounded PostgreSQL pool and shutdown handling. A future Socket.IO server can attach to that same listener.
 
 | Provider | Development consideration |

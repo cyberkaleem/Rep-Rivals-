@@ -1,19 +1,25 @@
 import { once } from 'node:events'
 import { createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
-import { createApp } from './app.js'
+import { createApp, createHealthOnlyApp } from './app.js'
 import { ConfigurationError, parseRuntimeConfig, readSettings } from './config/env.js'
 import { createDatabase } from './db/client.js'
 import { createAuthService } from './auth/service.js'
 
-export async function startServer(config = parseRuntimeConfig(readSettings())) {
+function runtime(config: ReturnType<typeof parseRuntimeConfig>) {
+  if (config.healthOnly) return { app: createHealthOnlyApp(), disconnect: undefined }
   const database = createDatabase(config.databaseUrl)
-  const server = createServer(createApp(config.origins, database.check, createAuthService(database.prisma), config.production, config.trustedProxies))
+  return { app: createApp(config.origins, database.check, createAuthService(database.prisma), config.production, config.trustedProxies), disconnect: database.close }
+}
+
+export async function startServer(config = parseRuntimeConfig(readSettings())) {
+  const { app, disconnect } = runtime(config)
+  const server = createServer(app)
   try {
     server.listen(config.port, config.host)
     await once(server, 'listening')
   } catch (error) {
-    await database.close()
+    await disconnect?.()
     throw error
   }
 
@@ -26,7 +32,7 @@ export async function startServer(config = parseRuntimeConfig(readSettings())) {
           server.close(error => error ? reject(error) : resolve()))
       } finally {
         clearTimeout(limit)
-        await database.close()
+        await disconnect?.()
       }
     })()
     return closing
