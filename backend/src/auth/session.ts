@@ -10,9 +10,19 @@ export function sessionCookie(production: boolean) {
 
 const digest = (token: string) => createHash('sha256').update(token).digest('hex')
 
-export function issueSession() {
-  const token = randomBytes(32).toString('base64url')
-  return { token, record: { tokenHash: digest(token), expiresAt: new Date(Date.now() + sessionLifetimeMs) } }
+export type SessionClient = 'web' | 'android'
+const androidDigest = (token: string) => digest('rep-rivals:android:v1\0' + token)
+
+export function bearerDigest(header?: string) {
+  const match = /^Bearer (rrn1\.[A-Za-z0-9_-]{43})$/i.exec(header ?? '')
+  return match ? androidDigest(match[1]) : null
+}
+
+export function issueSession(client: SessionClient = 'web') {
+  const random = randomBytes(32).toString('base64url')
+  const token = client === 'android' ? 'rrn1.' + random : random
+  const tokenHash = client === 'android' ? androidDigest(token) : digest(token)
+  return { token, record: { tokenHash, expiresAt: new Date(Date.now() + sessionLifetimeMs) } }
 }
 
 export function sessionDigest(header: string | undefined, name: string) {

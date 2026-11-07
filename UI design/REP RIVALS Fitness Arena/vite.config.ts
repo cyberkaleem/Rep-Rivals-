@@ -58,7 +58,8 @@ function androidPackaging(): Plugin {
     name: 'rep-rivals-android-packaging',
     apply: 'build',
     transformIndexHtml(html) {
-      return html.replace("connect-src 'self' ws://localhost:* ws://127.0.0.1:*", "connect-src 'self'")
+      return html.replace("connect-src 'self' ws://localhost:* ws://127.0.0.1:*",
+        "connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; script-src 'self' 'wasm-unsafe-eval'")
     },
   }
 }

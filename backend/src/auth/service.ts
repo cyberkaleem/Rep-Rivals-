@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { Algorithm, hash, verify } from '@node-rs/argon2'
 import { Prisma, type PrismaClient } from '../generated/prisma/client.js'
 import { ApiError } from '../middleware/errors.js'
-import { issueSession } from './session.js'
+import { issueSession, type SessionClient } from './session.js'
 
 const publicFields = { id: true, username: true, email: true, createdAt: true } as const
 const hashPassword = (password: string) => hash(password, {
@@ -13,9 +13,9 @@ let dummyHash: Promise<string> | undefined
 
 export function createAuthService(prisma: PrismaClient) {
   return {
-    async register(username: string, email: string, password: string) {
+    async register(username: string, email: string, password: string, client: SessionClient = 'web') {
       const passwordHash = await hashPassword(password)
-      const session = issueSession()
+      const session = issueSession(client)
       try {
         const user = await prisma.user.create({
           data: { username, email, passwordHash, sessions: { create: session.record } },
@@ -29,12 +29,12 @@ export function createAuthService(prisma: PrismaClient) {
         throw error
       }
     },
-    async login(email: string, password: string) {
+    async login(email: string, password: string, client: SessionClient = 'web') {
       const credentials = await prisma.user.findUnique({ where: { email }, select: { id: true, passwordHash: true } })
       const encoded = credentials?.passwordHash ?? await (dummyHash ??= hashPassword(randomBytes(32).toString('hex')))
       const matches = await verify(encoded, password)
       if (!credentials || !matches) throw new ApiError(401, 'INVALID_CREDENTIALS', 'Incorrect email or password.')
-      const session = issueSession()
+      const session = issueSession(client)
       const { user } = await prisma.authenticationSession.create({
         data: { userId: credentials.id, ...session.record },
         select: { user: { select: publicFields } },

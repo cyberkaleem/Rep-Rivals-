@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { parseEnv } from 'node:util'
 import { z } from 'zod'
+import { isIP } from 'node:net'
 
 const rootEnv = new URL('../../../.env', import.meta.url)
-const settings = ['DATABASE_URL', 'DIRECT_URL', 'HOST', 'PORT', 'CORS_ORIGINS', 'NODE_ENV'] as const
+const settings = ['DATABASE_URL', 'DIRECT_URL', 'HOST', 'PORT', 'CORS_ORIGINS', 'NODE_ENV', 'TRUSTED_PROXY_CIDRS'] as const
 type Settings = Partial<Record<typeof settings[number], string>>
 
 // The relative path is identical in src/config and dist/config. Injected settings win.
@@ -61,5 +62,14 @@ export function parseRuntimeConfig(settings: Settings) {
   if (production && (!settings.CORS_ORIGINS || origins.data.some(origin => !origin.startsWith('https://')))) {
     throw new ConfigurationError('CORS_ORIGINS')
   }
-  return { port: port.data, host: host.data, origins: origins.data, production, databaseUrl: neonUrl(settings.DATABASE_URL, 'DATABASE_URL') }
+  const trustedProxies = settings.TRUSTED_PROXY_CIDRS?.split(',').map(value => value.trim()) ?? []
+  for (const cidr of trustedProxies) {
+    const [ip, prefix, extra] = cidr.split('/')
+    const family = isIP(ip)
+    if (!family || extra !== undefined || (prefix !== undefined &&
+        (!/^[1-9]\d*$/.test(prefix) || Number(prefix) > (family === 4 ? 32 : 128)))) {
+      throw new ConfigurationError('TRUSTED_PROXY_CIDRS')
+    }
+  }
+  return { port: port.data, host: host.data, origins: origins.data, production, trustedProxies, databaseUrl: neonUrl(settings.DATABASE_URL, 'DATABASE_URL') }
 }

@@ -7,7 +7,8 @@ const config: CapacitorConfig = {
   // Serve the bundled build in a secure WebView context. No live-reload URL.
   server: { hostname: 'localhost', androidScheme: 'https', cleartext: false },
   android: { allowMixedContent: false },
-  loggingBehavior: 'debug',
+  // The Capacitor debug bridge otherwise logs plugin method arguments.
+  loggingBehavior: 'none',
   plugins: { SystemBars: { insetsHandling: 'native' } },
 };
 

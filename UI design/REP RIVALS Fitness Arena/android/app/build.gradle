@@ -1,5 +1,19 @@
 apply plugin: 'com.android.application'
 
+// Only an origin is configurable. Endpoints and headers stay in native code.
+def publicOrigin = System.getenv('REP_RIVALS_ANDROID_API_ORIGIN') ?: ''
+if (publicOrigin) {
+    def uri = new URI(publicOrigin)
+    if (uri.scheme != 'https' || !uri.host || !uri.host.contains('.') ||
+        !(uri.host ==~ /[a-zA-Z0-9.-]+/) || uri.host ==~ /[0-9.]+/ ||
+        uri.userInfo || uri.path || uri.query != null || uri.fragment != null ||
+        uri.port == 0 || uri.port > 65535 || uri.host.endsWith('.localhost')) {
+        throw new GradleException('REP_RIVALS_ANDROID_API_ORIGIN must be a bare HTTPS DNS origin')
+    }
+}
+def emulatorTls = System.getenv('REP_RIVALS_EMULATOR_TLS') == '1'
+def devResources = rootProject.file('../../../.tools/android-auth-tls/res')
+
 android {
     namespace = "com.reprivals.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -17,11 +31,26 @@ android {
         }
     }
     buildTypes {
+        debug {
+            resValue 'string', 'account_api_origin', emulatorTls ? 'https://127.0.0.1:4443' : publicOrigin
+        }
         release {
+            resValue 'string', 'account_api_origin', publicOrigin
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    if (emulatorTls) {
+        if (!new File(devResources, 'raw/rep_rivals_dev_ca.pem').isFile()) {
+            throw new GradleException('Run the development TLS setup before building the emulator APK')
+        }
+        sourceSets.debug.manifest.srcFile 'src/emulatorTls/AndroidManifest.xml'
+        sourceSets.debug.res.srcDirs += ['src/emulatorTls/res', devResources]
+    }
+}
+
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
+    doFirst { if (!publicOrigin) throw new GradleException('Set REP_RIVALS_ANDROID_API_ORIGIN for release') }
 }
 
 repositories {
@@ -31,6 +60,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.squareup.okhttp3:okhttp:5.4.0'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"

@@ -9,6 +9,9 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "android:tls": "node --input-type=module -e \"import { prepareTls } from './scripts/emulator-tls.mjs'; prepareTls();\"",
+    "android:https": "node --import tsx scripts/dev-https.mjs",
+    "verify:android": "node --import tsx tests/live-android.mjs",
     "build": "pnpm db:generate && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",

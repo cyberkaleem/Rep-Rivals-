@@ -51,6 +51,7 @@ for (const file of await files(assets)) {
     `Server configuration in ${path.relative(assets, file)}`)
 }
 const html = await readFile(path.join(packaged, 'index.html'), 'utf8')
-assert.ok(html.includes('content="connect-src \'self\'"'), 'Use the Android production build policy')
+assert.ok(html.includes("connect-src 'self'; frame-src 'none'"), 'Use the packaged Android connection policy')
+assert.equal(config.loggingBehavior, 'none', 'Capacitor must not log authentication arguments')
 assert.ok(!html.includes('/@vite/client'), 'Development client in packaged HTML')
 console.log(`Android assets verified: ${builtFiles.length} build files match, versioned model/WASM match, no database configuration found.`)

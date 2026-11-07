@@ -8,7 +8,7 @@ import { createAuthService } from './auth/service.js'
 
 export async function startServer(config = parseRuntimeConfig(readSettings())) {
   const database = createDatabase(config.databaseUrl)
-  const server = createServer(createApp(config.origins, database.check, createAuthService(database.prisma), config.production))
+  const server = createServer(createApp(config.origins, database.check, createAuthService(database.prisma), config.production, config.trustedProxies))
   try {
     server.listen(config.port, config.host)
     await once(server, 'listening')
