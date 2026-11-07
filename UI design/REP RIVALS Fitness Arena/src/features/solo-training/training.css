@@ -22,3 +22,29 @@
 @media(max-width:1000px) { .training-grid { grid-template-columns:minmax(0,1fr) 280px; gap:14px; }.training-page { padding-inline:3vw; }.training-label { max-width:180px; line-height:1.6; } }
 @media(max-width:760px) { .training-grid { grid-template-columns:1fr; }.training-title { align-items:flex-start; flex-direction:column; padding-top:24px; }.training-sidebar { display:grid; grid-template-columns:1fr 1fr; }.training-diagnostics { grid-column:1/-1; }.camera-heading { flex-direction:column; gap:8px; }.training-header { height:65px; }.training-back { font-size:12px; }.training-controls button { flex:1 1 auto; } }
 @media(max-width:440px) { .training-sidebar { display:flex; }.camera-placeholder h2 { font-size:23px; }.camera-placeholder p { font-size:12px; }.training-controls { padding-inline:12px; }.training-feedback { padding-inline:12px; }.training-label { max-width:none; } }
+.inference-details { margin-top:12px; border-top:1px solid #303436; padding-top:12px; }
+.inference-details summary { cursor:pointer; font-size:13px; }
+.inference-details dd { max-width:60%; overflow-wrap:anywhere; }
+.joint-readings { margin-top:12px; font-size:11px; }
+.joint-readings table { width:100%; margin:8px 0; font-variant-numeric:tabular-nums; }
+.joint-readings th, .joint-readings td { padding:4px 2px; text-align:left; }
+.joint-readings caption, .joint-readings p { margin:6px 0; color:#c2c4ca; }
+.joint-readings small { display:block; color:#ffab85; }
+.training-countdown {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  padding: 12px 24px;
+  border-radius: 8px;
+  background: rgba(12, 14, 15, .9);
+  color: #fff;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.training-countdown strong {
+  color: var(--ember);
+  font: 800 clamp(52px, 10vw, 96px)/1 var(--display);
+  font-variant-numeric: tabular-nums;
+}

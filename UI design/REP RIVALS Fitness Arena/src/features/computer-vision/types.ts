@@ -5,6 +5,7 @@ export interface Landmark {
   y: number
   z?: number
   visibility?: number
+  presence?: number
 }
 export interface PoseFeatures {
   valid: boolean

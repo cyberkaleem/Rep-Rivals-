@@ -70,6 +70,12 @@ test("real MediaPipe loads on fake video, cannot calibrate without a body, and r
     timeout: 45000,
   })
   await expect(page.getByText("TRACKING LOST", { exact: true })).toBeVisible()
+  await page.getByText("Inference diagnostics", { exact: true }).click()
+  const diagnostics = page.locator(".inference-details")
+  await expect(diagnostics.getByText("MediaPipe returned zero poses.")).toBeVisible()
+  await expect(diagnostics.locator("dt", { hasText: "Raw poses" }).locator("+ dd")).toHaveText("0")
+  await expect(diagnostics.locator("dt", { hasText: "Raw landmarks" }).locator("+ dd")).toHaveText("0")
+  await expect(diagnostics.getByText("None reported")).toBeVisible()
   await expect(
     page.getByRole("button", { name: "Start training" }),
   ).toBeDisabled()

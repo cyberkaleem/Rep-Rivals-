@@ -10,6 +10,21 @@ export const POSE_RULES = {
   minAlignment: 150,
   maxBodySlope: 0.65,
   minBodySpan: 0.25,
+  minWristDrop: 0.025,
+}
+export const JOINT_NAMES = ["shoulder", "elbow", "wrist", "hip", "knee", "ankle"] as const
+
+export function inFrame(p: Landmark | undefined): p is Landmark {
+  return !!p && Number.isFinite(p.x) && Number.isFinite(p.y) &&
+    p.x >= POSE_RULES.margin && p.x <= 1 - POSE_RULES.margin &&
+    p.y >= POSE_RULES.margin && p.y <= 1 - POSE_RULES.margin
+}
+
+export function jointIssue(p: Landmark | undefined) {
+  if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return "missing coordinates"
+  if (!inFrame(p)) return "outside margin"
+  if (!Number.isFinite(p.visibility)) return "missing visibility"
+  return p.visibility! < POSE_RULES.visibility ? "low visibility" : null
 }
 
 /** Pixel-equivalent coordinates prevent aspect-ratio distortion of joint angles. */
@@ -43,14 +58,7 @@ export function sideQuality(points: Landmark[], side: TrackingSide): number {
   return Math.min(
     ...SIDES[side].map((i) => {
       const p = points[i]
-      return p &&
-        Number.isFinite(p.x) &&
-        Number.isFinite(p.y) &&
-        Number.isFinite(p.visibility) &&
-        p.x >= POSE_RULES.margin &&
-        p.x <= 1 - POSE_RULES.margin &&
-        p.y >= POSE_RULES.margin &&
-        p.y <= 1 - POSE_RULES.margin
+      return inFrame(p) && Number.isFinite(p.visibility)
         ? Math.max(0, Math.min(1, p.visibility!))
         : 0
     }),
@@ -64,11 +72,24 @@ export function selectSide(points: Landmark[]): TrackingSide | null {
   return left >= right ? "left" : "right"
 }
 
+export function alignment(points: Landmark[], side: TrackingSide, width: number, height: number) {
+  const [s, e, w, h, k, a] = SIDES[side].map(i => points[i])
+  const angle = (p: Landmark, q: Landmark, r: Landmark) =>
+    p && q && r ? jointAngle(p, q, r, width, height) : null
+  const dx = s && a ? Math.abs(s.x - a.x) * width : NaN
+  return {
+    elbow: angle(s, e, w), hip: angle(s, h, a), knee: angle(h, k, a),
+    span: dx / width, slope: s && a ? Math.abs(s.y - a.y) * height / dx : NaN,
+    wristDrop: s && w ? w.y - s.y : NaN,
+  }
+}
+
 export function extractFeatures(
   points: Landmark[],
   side: TrackingSide,
   width: number,
   height: number,
+  angles = alignment(points, side, width, height),
 ): PoseFeatures {
   const quality = sideQuality(points, side)
   const invalid = (feedback: string): PoseFeatures => ({
@@ -81,20 +102,13 @@ export function extractFeatures(
     return invalid(
       "Keep your full body visible. Improve lighting or adjust the camera.",
     )
-  const [shoulder, elbow, wrist, hip, knee, ankle] = SIDES[side].map(
-    (i) => points[i],
-  )
-  const angle = jointAngle(shoulder, elbow, wrist, width, height)
-  const hipAngle = jointAngle(shoulder, hip, ankle, width, height)
-  const kneeAngle = jointAngle(hip, knee, ankle, width, height)
+  const { elbow: angle, hip: hipAngle, knee: kneeAngle } = angles
   if (angle === null || hipAngle === null || kneeAngle === null)
     return invalid("Unable to verify position. Adjust camera position.")
-  const dx = Math.abs(shoulder.x - ankle.x) * width
-  const dy = Math.abs(shoulder.y - ankle.y) * height
   if (
-    dx < width * POSE_RULES.minBodySpan ||
-    dy > dx * POSE_RULES.maxBodySlope ||
-    wrist.y < shoulder.y + 0.025
+    angles.span < POSE_RULES.minBodySpan ||
+    angles.slope > POSE_RULES.maxBodySlope ||
+    angles.wristDrop < POSE_RULES.minWristDrop
   ) {
     return invalid(
       "Turn sideways and hold a push-up plank with your full body in view.",

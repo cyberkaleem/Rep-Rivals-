@@ -21,6 +21,8 @@ export interface CounterFrame {
   valid: boolean
   elbowAngle: number | null
   feedback?: string
+  /** Optional fresh-observation hold, supplied only during Android preview. */
+  previewProgress?: number
 }
 
 export class PushUpCounter {
@@ -43,6 +45,9 @@ export class PushUpCounter {
   }
   constructor(config: Partial<Config> = {}) {
     this.config = { ...COUNTER_CONFIG, ...config }
+  }
+  get isCounting() {
+    return this.counting
   }
   snapshot(): CounterSnapshot {
     return { ...this.data }
@@ -112,7 +117,8 @@ export class PushUpCounter {
     ) {
       this.resetCycle()
       this.data.angle = null
-      this.data.calibrationProgress = this.data.calibrated ? 1 : 0
+      if (frame.previewProgress !== undefined && !this.counting) this.data.calibrated = false
+      this.data.calibrationProgress = this.data.calibrated ? 1 : frame.previewProgress ?? 0
       this.move(
         "TRACKING_LOST",
         frame.feedback ?? "Tracking lost. Keep your full body visible.",
@@ -132,12 +138,14 @@ export class PushUpCounter {
     this.data.angle = angle
     const top = angle >= this.config.topAngle
     const bottom = angle <= this.config.bottomAngle
-    if (!this.data.calibrated) {
-      const ready = this.held(top, now, this.config.calibrationMs)
+    const preview = this.counting ? undefined : frame.previewProgress
+    if (!this.data.calibrated || preview !== undefined) {
+      const ready = preview === undefined ? this.held(top, now, this.config.calibrationMs) : top && preview >= 1
+      this.data.calibrated = ready
       this.data.calibrationProgress =
-        this.holdSince === null
+        preview ?? (this.holdSince === null
           ? 0
-          : Math.min(1, (now - this.holdSince) / this.config.calibrationMs)
+          : Math.min(1, (now - this.holdSince) / this.config.calibrationMs))
       this.data.feedback = top
         ? "Hold your starting position."
         : "Extend your arms in the starting plank position."

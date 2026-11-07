@@ -2,6 +2,14 @@
 
 Implemented on 2026-11-01. This phase is code-complete pending the checks listed below; it is not evidence that the full game works.
 
+## Optional Auto Start — 7 November 2026
+
+On the training page, select **Auto Start** beside the camera options, enable the camera, and move into the starting plank. Once calibration confirms the extended-arm top position, the preview displays a five-second countdown. Hold the position until the countdown ends, then begin the first push-up. The session clock and counting start together. The toggle defaults to off each time the training page opens. **Start training** remains available after calibration, including during the countdown.
+
+Fresh pose frames advance the countdown. Losing the required position, losing tracking, or exceeding the tracker's existing 400 ms frame-gap limit requires a fresh five seconds. Turning Auto Start off or selecting **Recalibrate** also clears the countdown. Stopping, ending, hiding, or leaving training clears the pending start and releases the camera. Both start methods enter the same workout through a single guarded action.
+
+Type checking, 40 unit tests, 7 Chromium tests and the Android debug build passed. The browser tests exercised countdown interruptions, manual override, session cleanup and the first counted rep using controlled landmark sequences. The Android owner previously confirmed physical starting-position calibration. A live hands-free countdown followed by a physical rep on the updated APK remains a manual check.
+
 ## Implementation checklist
 
 - [x] Separate camera lifecycle, MediaPipe initialization, geometry, counter, tracker and React presentation.

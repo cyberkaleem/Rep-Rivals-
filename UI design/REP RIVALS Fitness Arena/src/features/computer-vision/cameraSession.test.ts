@@ -30,6 +30,8 @@ function setup() {
     videoHeight: 480,
   } as unknown as HTMLVideoElement
   const detector = {
+    delegate: "CPU" as const,
+    runningMode: "VIDEO" as const,
     detectForVideo: vi.fn().mockReturnValue({ landmarks: [] }),
     close: vi.fn(),
   }
@@ -87,14 +89,57 @@ describe("camera resource ownership", () => {
     callback(now + 100)
     callback(now + 500)
     expect(s.detector.detectForVideo).toHaveBeenCalledOnce()
-    expect(s.callbacks.onFrame).toHaveBeenLastCalledWith(
-      [],
-      640,
-      480,
-      now + 500,
-      0,
-    )
+    expect(s.callbacks.onFrame).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      count: 1, points: [], inference: { ms: expect.any(Number), poses: 0, landmarks: 0 },
+    }))
+    expect(s.callbacks.onFrame).toHaveBeenLastCalledWith(expect.objectContaining({
+      count: 1, points: [], timestampMs: now + 500, fps: 0, inference: null,
+    }))
     camera.stop()
+  })
+  it("reports raw landmarks even when visibility is too low for tracking", async () => {
+    const s = setup()
+    const points = Array.from({ length: 33 }, () => ({ x: 0, y: 0, visibility: 0 }))
+    s.detector.detectForVideo.mockReturnValue({ landmarks: [points] })
+    const camera = new CameraSession(s.video, s.callbacks, async () => s.detector)
+    await camera.start()
+    s.raf.mock.calls[0][0](performance.now())
+    expect(s.callbacks.onFrame).toHaveBeenCalledWith(expect.objectContaining({
+      points, count: 1, mediaTimeMs: 1000, width: 640, height: 480,
+      inference: { ms: expect.any(Number), poses: 1, landmarks: 33 },
+    }))
+    camera.stop()
+  })
+  it("rejects a moving playback clock without a new Android presentation timestamp", async () => {
+    const s = setup()
+    const presented = vi.fn<(callback: VideoFrameRequestCallback) => number>().mockReturnValue(7)
+    const cancel = vi.fn()
+    Object.assign(s.video, { requestVideoFrameCallback: presented, cancelVideoFrameCallback: cancel })
+    const camera = new CameraSession(s.video, s.callbacks, async () => s.detector, true)
+    await camera.start()
+    const tick = s.raf.mock.calls[0][0] as FrameRequestCallback
+    const now = performance.now()
+    presented.mock.calls[0][0](now, { mediaTime: 1 } as VideoFrameCallbackMetadata)
+    tick(now)
+    s.video.currentTime = 2
+    tick(now + 500)
+    expect(s.detector.detectForVideo).toHaveBeenCalledTimes(1)
+    expect(s.callbacks.onFrame).toHaveBeenLastCalledWith(expect.objectContaining({ inference: null }))
+    presented.mock.calls[1][0](now + 600, { mediaTime: 2 } as VideoFrameCallbackMetadata)
+    tick(now + 600)
+    expect(s.detector.detectForVideo).toHaveBeenCalledTimes(2)
+    camera.stop()
+    expect(cancel).toHaveBeenCalledWith(7)
+  })
+  it("distinguishes an inference error from a successful empty result", async () => {
+    const s = setup()
+    s.detector.detectForVideo.mockImplementation(() => { throw new Error("graph failed") })
+    const camera = new CameraSession(s.video, s.callbacks, async () => s.detector)
+    await camera.start()
+    s.raf.mock.calls[0][0](performance.now())
+    expect(s.callbacks.onFrame).not.toHaveBeenCalled()
+    expect(s.callbacks.onError).toHaveBeenCalledWith(expect.any(String), "Inference failed")
+    expect(s.track.stop).toHaveBeenCalledOnce()
   })
   it("stops the camera when model loading fails", async () => {
     const s = setup(),
@@ -103,7 +148,7 @@ describe("camera resource ownership", () => {
       })
     await camera.start()
     expect(s.track.stop).toHaveBeenCalledOnce()
-    expect(s.callbacks.onError).toHaveBeenCalledOnce()
+    expect(s.callbacks.onError).toHaveBeenCalledWith(expect.any(String), "Initialization failed")
   })
   it("handles physical disconnection", async () => {
     const s = setup(),

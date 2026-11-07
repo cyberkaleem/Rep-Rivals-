@@ -10,12 +10,15 @@ import {
   Square,
 } from "lucide-react"
 import { usePushUpCamera } from "../computer-vision/usePushUpCamera"
+import { Capacitor } from "@capacitor/core"
+import { reading } from "../computer-vision/calibrationDiagnostics"
 import "./training.css"
 
 export default function TrainingPage() {
   const cv = usePushUpCamera()
   const [overlay, setOverlay] = useState(true)
   const [mirror, setMirror] = useState(false)
+  const sample = cv.diagnostics
   const seconds = Math.floor(cv.elapsedMs / 1000)
   const timer = `${Math.floor(seconds / 60)
     .toString()
@@ -64,6 +67,12 @@ export default function TrainingPage() {
               aria-label="Local camera preview"
             />
             <canvas ref={cv.canvasRef} aria-hidden="true" />
+            {cv.countdownSeconds !== null && (
+              <div className="training-countdown" role="status" aria-atomic="true">
+                <span>Training starts in</span>
+                <strong>{cv.countdownSeconds}</strong>
+              </div>
+            )}
             {!cv.active && (
               <div className="camera-placeholder">
                 <CameraOff size={40} />
@@ -81,6 +90,15 @@ export default function TrainingPage() {
             )}
           </div>
           <div className="camera-options">
+            <label>
+              <input
+                type="checkbox"
+                defaultChecked={false}
+                disabled={cv.running}
+                onChange={(event) => cv.setAutoStart(event.currentTarget.checked)}
+              />
+              Auto Start
+            </label>
             <label>
               <input
                 type="checkbox"
@@ -222,6 +240,45 @@ export default function TrainingPage() {
                 <dd>{cv.active ? `${Math.round(cv.inferenceMs)} ms` : "—"}</dd>
               </div>
             </dl>
+            <details className="inference-details" open={Capacitor.getPlatform() === "android"}>
+              <summary>Inference diagnostics</summary>
+              <dl>
+                <div><dt>Model</dt><dd>{sample ? `${sample.runningMode} · ${sample.delegate}` : "Awaiting inference"}</dd></div>
+                <div><dt>Video input</dt><dd>{sample ? `${sample.width} × ${sample.height} · ${sample.facing}` : "—"}</dd></div>
+                <div><dt>Overlay canvas</dt><dd>{sample ? `${sample.canvasWidth} × ${sample.canvasHeight}` : "—"}</dd></div>
+                <div><dt>Preview box</dt><dd>{sample ? `${sample.previewWidth} × ${sample.previewHeight}` : "—"}</dd></div>
+                <div><dt>Screen rotation</dt><dd>{sample?.screenAngle != null ? `${sample.screenAngle}°` : "—"}</dd></div>
+                <div><dt>Mirror preview</dt><dd>{mirror ? "On (display only)" : "Off"}</dd></div>
+                <div><dt>Completed inferences</dt><dd>{sample?.count ?? 0}</dd></div>
+                <div><dt>Inference FPS</dt><dd>{cv.active ? sample?.fps?.toFixed(1) ?? "—" : "—"}</dd></div>
+                <div><dt>Video time / inference time stamp</dt><dd>{sample?.inference ? `${Math.round(sample.mediaTimeMs)} / ${Math.round(sample.timestampMs)} ms` : "—"}</dd></div>
+                <div><dt>Raw poses</dt><dd>{sample?.inference?.poses ?? "—"}</dd></div>
+                <div><dt>Raw landmarks</dt><dd>{sample?.inference?.landmarks ?? "—"}</dd></div>
+                <div><dt>Model error</dt><dd>{cv.modelFailure ?? "None reported"}</dd></div>
+                <div><dt>Tracking decision</dt><dd>{cv.modelFailure ?? (!cv.active ? "Camera off" : sample ? sample.rejection ?? "Pose passed validation." : "Waiting for inference.")}</dd></div>
+                {sample?.holdStatus && <div><dt>Calibration hold</dt><dd>{sample.holdStatus}</dd></div>}
+                {sample?.lastInterruption && <div><dt>Last hold interruption</dt><dd>{sample.lastInterruption}</dd></div>}
+              </dl>
+              {sample?.sides.map(s => (
+                <details key={s.side} className="joint-readings">
+                  <summary>{s.side === "left" ? "Left" : "Right"} joint readings</summary>
+                  <p>{s.gate}</p>
+                  <table>
+                    <caption>Normalized input coordinates and raw confidence</caption>
+                    <thead><tr><th>Joint</th><th>x / y</th><th>Visibility</th><th>Presence</th></tr></thead>
+                    <tbody>{s.joints.map(({ name, point, issue }) => (
+                      <tr key={name}>
+                        <th scope="row">{name}{issue && <small>{issue}</small>}</th>
+                        <td>{reading(point?.x)} / {reading(point?.y)}</td>
+                        <td>{reading(point?.visibility)}</td><td>{reading(point?.presence)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                  <p>Hip {reading(s.angles.hip, 1)}° · Knee {reading(s.angles.knee, 1)}° · Elbow {reading(s.angles.elbow, 1)}°</p>
+                  <p>Hip movement since previous frame: {reading(s.hipDelta, 1)} px</p>
+                </details>
+              ))}
+            </details>
           </section>
         </aside>
       </div>

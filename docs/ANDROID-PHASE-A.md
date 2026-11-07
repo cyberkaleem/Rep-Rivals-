@@ -124,3 +124,57 @@ Use the installed APK on Pixel 7 / Android 15 / API 35 and repeat on a physical 
 6. After the future secure Android API integration, test real registration, login, refresh/relaunch persistence, expiration and logout invalidation against development. Check HttpOnly/Secure cookies and CSRF rejection on the actual WebView.
 
 Release signing, store distribution, final icon/splash branding, Android authentication and physical-device CV acceptance remain future work. Use an updated Android System WebView; the native minSdk alone does not establish compatibility with an old WebView's JavaScript, WebGL or MediaPipe runtime. No backend, migration, database, multiplayer, rewards or avatar work is part of this phase.
+
+## 7 November 2026 — Android pose detection follow-up
+
+The owner confirmed APK launch, camera permission and a full body visible in the preview during the failure. Both Pixel_7 AVD camera settings now point to Webcam0. In the original app, 54 consecutive calls on the live video element returned zero raw poses before tracker validation. The overlay therefore had no points to draw.
+
+On Android System WebView 156.0.8078.50, the decoded frames and overlay backing canvas both measured 480 × 640. The portrait display fitted them into a 385 × 289 CSS box. Frame rotation metadata was 0°, flip was false and the preview had no CSS mirror. Media time advanced from 1.11 to 5.84 seconds and detector timestamps increased at roughly 11 calls/second. Downsampled luminance ranged from 16 to 109 out of 255. Only numeric measurements left the WebView.
+
+The GPU initialized successfully on the emulator's OpenGL ES Translator (NVIDIA RTX 5050 Laptop GPU). For a known full-body reference rendered at 480 × 640, GPU inference returned zero poses on all four video calls and all four canvas calls. CPU inference returned one pose with 33 landmarks on every equivalent call, using the same VIDEO mode, model, WASM and thresholds. A separate eight-frame live sample gave zero poses on both delegates. The controlled test isolates a silent failure in the emulator GPU inference path. Identifying the responsible driver or GPU kernel would require lower-level tracing. [Google MediaPipe pose reference image](https://storage.googleapis.com/mediapipe-assets/pose.jpg)
+
+The rebuilt APK selects CPU on native Capacitor Android. Browser training retains its GPU-first initialization and CPU fallback. The training page's **Inference diagnostics** panel reports the active delegate/mode, input and overlay dimensions, CSS size, screen angle, mirror setting, timestamps, completed inference count and rate, raw poses/landmarks, errors and the tracker decision. A stale-video tick has no inference result. Clock values are milliseconds, with video time relative to the stream and inference time relative to the page. The pose validation and repetition thresholds are unchanged.
+
+Type checking, 37 unit tests, 4 Chromium regression tests and `pnpm android:build` passed. The rebuilt APK was installed and cold-launched on the Pixel 7. Its normal detector factory selected VIDEO/CPU and returned 33 landmarks on 8 of 8 reference-video frames. The diagnostic APK at the path above has SHA-256 `18dacb951dea5e3b9178d48cf32c52086e3f8721ab457bed516af1883aafa016`.
+
+During a subsequent live check, the user stood in view of Webcam0. All 37 distinct panel samples across 11.8 seconds reported **1 raw pose and 33 raw landmarks** on VIDEO/CPU. The completed inference counter advanced from 5,609 to 5,809. The final reading was 17.1 FPS with no model error. The video and overlay were both 480 × 640, with screen rotation at 0° and preview mirroring off.
+
+The tracker reported that neither side met its six-joint framing and visibility requirement throughout the sample. The panel identifies the failed gate but does not identify which joint failed it. Live Android pose detection is verified. Side-on extended-arm plank calibration and a physically counted push-up trial remain to be checked.
+
+## Android hip calibration follow-up
+
+The owner subsequently confirmed successful physical starting-plank calibration and Auto Start on Android. The previous panel had no per-joint history for the reported slow trials. Its 0% side-quality reading could result from any of six joints. The hip alignment gate uses the shoulder–hip–ankle angle. The knee gate uses hip–knee–ankle. Both use decoded pixel dimensions to correct normalized coordinates for aspect ratio.
+
+**Live baseline on the original APK.** The owner moved into position while the Pixel 7 API 35 WebView used its normal CPU detector and Webcam0. Only numeric summaries were read. Of 181 detector calls, 98 returned zero poses. On the 83 pose frames, the first reported gate was insufficient shoulder-to-ankle horizontal span on 64 and joint visibility on 19. The width gate was 25% of 480 px, or 120 px. The original probe retained failure counts for span. The new panel reports the observed span in pixels alongside that minimum.
+
+| Measured across pose frames | Left hip | Right hip |
+| --- | --- | --- |
+| Visibility | 0.997–0.999 | 0.998–0.999 |
+| Presence | 0.992–1.000 | 0.994–1.000 |
+| Shoulder–hip–ankle angle | 162.40–178.93° | 157.85–179.85° |
+| Hip–knee–ankle angle | 157.31–179.95° | 153.39–179.96° |
+| Hip displacement between successive pose frames | 0.30–40.39 px | 0.40–33.25 px |
+
+Both hip confidence and alignment passed on the measured pose frames. Both the original and revised trackers withheld calibration when evaluated on these same outputs. The wide displacement range includes the player moving into position. An independent on-device control, using the public reference pose translated horizontally by up to 2 px, produced 33 landmarks on all 16 calls. The user's earlier slow but successful trials have no saved per-joint measurements.
+
+The following controlled inputs exercised the original and revised trackers at 480 × 640 with a fresh observation every 60 ms. All single-interruption trials had reached 85% of the 1,200 ms hold before the interruption.
+
+| Input | Original calibration | Revised Android preview |
+| --- | --- | --- |
+| One hip visibility dip from 0.95 to 0.59, alignment 180° | Reset to zero. Ready at 2,340 ms. | Paused at 85%. Ready at 1,320 ms. |
+| Hip moved 4 px. Hip angle changed from 151.23° to 148.37°, knee from 158.40° to 156.37°, visibility stayed 0.95. | Reset to zero. Ready at 2,340 ms. | Paused at 85%. Ready at 1,320 ms. |
+| Left side visibility 0.95 with a 132.85° hip. Right side visibility 0.90 and straight. | Selected left. Still waiting at 3,600 ms. | Selected right. Ready at 1,200 ms. |
+
+**Acceptance limits.** Visibility remains ≥0.60, normalized coordinates must lie within [0.015, 0.985], hip and knee angles must be ≥150°, and the extended elbow must be ≥155°. Body span, slope, wrist positioning and the 1,200 ms hold retain their original limits. The MediaPipe model's detection, presence and tracking confidence settings remain 0.5. Per-landmark presence is displayed when the SDK supplies it. It is separate from the model-level presence threshold.
+
+**Android preview timing.** Calibration requires at least 12 fresh, valid observations and 1,200 ms between consecutive valid observations. A marginal hip sample can pause an incomplete hold within a cumulative 180 ms interruption budget. The time from the last valid frame through recovery earns zero credit. The pause bands are 0.55–<0.60 hip visibility and 147–<150° hip alignment. The raw knee, elbow, framing and other joint checks must still pass. A reference hip averaged from up to three accepted observations within 180 ms must remain aligned, and the raw hip must be within 1% of the frame diagonal of that reference. The reference is used only to distinguish small fluctuations from movement. Every credited observation uses the raw hip. Missing or offscreen joints, larger deviations, persistent occlusion, resolution changes and frame gaps over 400 ms clear the evidence.
+
+Before locking a side, Android preview prefers a side that meets the starting-plank gates. A held side keeps its own evidence. The modern Android WebView uses presented-frame media timestamps to skip repeats even when the playback clock advances. A failed observation cancels a pending Auto Start. Counting uses the existing raw-frame geometry and full-cycle state machine.
+
+**On-device readings.** Open **Inference diagnostics → Left joint readings / Right joint readings**. Each row shows normalized x/y, visibility, optional presence and framing status. The panel also reports native-pixel hip displacement since the previous frame, elbow/hip/knee angles, hold time and valid observation count. **Last hold interruption** retains a numeric reason so a brief dropout remains inspectable between UI refreshes. A dash means unavailable.
+
+**Verification.** TypeScript, 56 unit tests, seven Chromium tests and the Android debug build passed. Tests cover isolated hip jitter, brief and repeated dips, persistent occlusion, missing joints, true misalignment, insufficient horizontal span, recovery, side choice, minimum observations, duplicate presentations, cancellation of Auto Start and partial-rep rejection.
+
+The final APK was installed on Pixel_7 and cold-launched. On the training page, the on-device check observed 10 fresh VIDEO/CPU inferences at 480 × 640, six diagnostic rows per side and no reported model error. The check stopped the camera. APK SHA-256: `52c8b0a7d12fa56d8a02aea8e5d4201f2148559f46bb6c2c64b831e359cfd3d6`.
+
+For the next physical trial, position the camera level and side-on so the shoulder and ankle are both visible and horizontally separated by at least a quarter of the camera image. Check the measured span first, then inspect **Last hold interruption** if progress resets. Compare several time-to-ready trials in the same position. Physical Android rep accuracy still requires an independently counted exercise trial.
