@@ -17,6 +17,9 @@ model User {
   createdAt    DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   sessions     AuthenticationSession[]
+  profile      PlayerProfile?
+  entries      ActivityPlayer[]
+  rewards      Reward[]
 
   @@map("users")
 }
@@ -33,4 +36,41 @@ model AuthenticationSession {
   @@index([userId], map: "auth_sessions_user_idx")
   @@index([expiresAt], map: "auth_sessions_expiry_idx")
   @@map("authentication_sessions")
+}
+
+model PlayerProfile {
+  userId String @id @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outfit String @default("ember")
+}
+
+model Activity {
+  id String @id @db.Uuid
+  kind String
+  startedAt DateTime @db.Timestamptz(3)
+  finishedAt DateTime @db.Timestamptz(3)
+  players ActivityPlayer[]
+}
+
+model ActivityPlayer {
+  activityId String @db.Uuid
+  userId String @db.Uuid
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score Int
+  outcome String
+  // Server acceptance offsets in milliseconds. Array position is the accepted rep number.
+  acceptedAtMs Int[]
+  @@id([activityId, userId])
+  @@index([userId])
+}
+
+model Reward {
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source String
+  xp Int
+  crystals Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@id([userId, source])
 }

@@ -47,7 +47,8 @@ public class AccountPlugin extends Plugin {
         String operation = call.getString("operation", "");
         boolean issuing = operation.equals("login") || operation.equals("register");
         boolean logout = operation.equals("logout");
-        if (!issuing && !logout && !operation.equals("me")) { finish(call, 400, null); return; }
+        boolean ticket = operation.equals("ticket");
+        if (!issuing && !logout && !ticket && !operation.equals("me")) { finish(call, 400, null); return; }
         try {
             SessionVault vault = new SessionVault(getContext(), origin);
             String token = issuing ? null : vault.read();
@@ -74,6 +75,16 @@ public class AccountPlugin extends Plugin {
                 ResponseBody data = response.body();
                 if (data == null || data.source().request(16385)) throw new IOException();
                 JSONObject result = new JSONObject(data.string());
+                if (ticket) {
+                    String key = result.getString("ticket");
+                    if (!key.matches("[A-Za-z0-9_-]{43}")) throw new IOException();
+                    JSObject grant = new JSObject();
+                    grant.put("ticket", key);
+                    grant.put("origin", origin);
+                    grant.put("status", status);
+                    call.resolve(grant);
+                    return;
+                }
                 JSONObject user = result.getJSONObject("user");
                 JSObject publicUser = new JSObject();
                 for (String field : new String[]{"id", "username", "email", "createdAt"}) {

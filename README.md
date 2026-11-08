@@ -1,10 +1,19 @@
 # REP RIVALS
 
-Camera-powered workout competition, under development. Players can register, log in, restore their session and open their account. Accounts and sessions persist on the Neon development branch. Local push-up training has passed an initial real-world test reported by the project owner. See the [authentication setup and Phase 2B verification](docs/PHASE-2B.md) and [backend foundation](docs/PHASE-2A.md).
+A camera-powered push-up arena for Android and the web. Train locally, save an authenticated workout, or invite another player into a private 60-second match. MediaPipe runs on the device. The Node server accepts ordered rep events, broadcasts the score and saves completed results and rewards in Neon PostgreSQL.
 
-## Run the camera phase
+## Play the local demo
 
-Prerequisites: Node 22.12+ or Node 24+, pnpm, a browser with WebAssembly and camera support. Verified here with Node 24.19.0 and pnpm 12.16.1; the existing `.mise.toml` specifies Node 22 and pnpm 10.34.3.
+Use the [product demo runbook](docs/MASTER-PRODUCT-COMPLETION.md) for the Android APK, the private HTTPS server and a Chromium rival on the same computer. Both players must connect to the **same running backend process**. Public Render is still in health-only mode.
+
+For browser-only play, run these commands in separate PowerShell terminals with the ignored development database environment configured:
+
+```powershell
+cd "C:\projects\Rep Rivals\backend"
+pnpm install --frozen-lockfile
+pnpm build
+pnpm dev
+```
 
 ```powershell
 cd "C:\projects\Rep Rivals\UI design\REP RIVALS Fitness Arena"
@@ -13,61 +22,15 @@ pnpm setup:vision
 pnpm dev --host 127.0.0.1 --port 5173
 ```
 
-Open `http://127.0.0.1:5173/training`. Setup downloads Google's versioned lite pose model, verifies its SHA-256, and copies the installed MediaPipe package's matching WASM files into ignored `public/vision/`. Model inference runs locally. Build and dev commands fail with instructions if assets are missing. Run setup again after upgrading MediaPipe. Commit source and the lockfile, not generated models or build output.
+Open `http://127.0.0.1:5173`. Use separate browser profiles for two players. The **Solo training** entry works offline once the web assets are available. Choose **Save to player profile** while signed in for server scoring. The dashboard's training link selects saving automatically.
 
-No environment variables or credentials are needed for this phase. Root `.env` is untouched and ignored. Do not add a Vite `envDir` pointing to the repository root or put database credentials in `VITE_*` variables.
+## Gameplay
 
-The HTML connection policy allows same-origin requests and loopback development WebSockets. Vite proxies same-origin account requests under `/api` to the backend. MediaPipe's external usage telemetry is blocked. The existing Google Fonts stylesheet is external. See [MediaPipe's privacy notice](https://developers.google.com/edge/mediapipe/solutions/tasks#mediapipe_tasks_privacy_notice).
+- Side-on calibration, optional Auto Start, and full top → bottom → top rep recognition.
+- Private rooms, readiness, countdown, live scores, reconnect and official results.
+- Player history, Noob → Elite → Titan progression, crystals and two UTC daily challenges.
+- Articulated Three.js athletes with persistent outfit colors and animations driven by match state and accepted scores.
 
-## What works
+The app sends score events and account traffic. Camera frames and landmark histories stay on the device. A client can fabricate plausible rep events; a server-accepted score is not proof of physical form.
 
-- Explicit camera permission, local preview, optional landmark overlay and mirrored display.
-- MediaPipe Tasks Vision VIDEO inference (lazy-loaded), GPU with CPU fallback, one person, at most 20 inferences/sec, duplicate decoded-frame rejection.
-- Aspect-ratio-correct elbow angles; visibility, framing, basic plank/alignment checks; stable left/right tracking side.
-- Starting-pose calibration with a timed hold, smoothing and hysteresis, full top-bottom-top acceptance, sequence numbers and local session identity.
-- Tracking loss drops incomplete cycles without erasing accepted reps. Sustained loss requires recalibration.
-- Start/end controls, elapsed time and unsaved local results. Preview/calibration does not count reps.
-- Stops camera tracks, inference loops and MediaPipe on end, navigation, hidden tab, device disconnection, or initialization failure. Cancellation during pending initialization also releases resources when they arrive.
-
-The measurements are heuristic proxies, **not clinically validated form assessment**. No video recording, uploads, socket connection, persistence, or rewards are part of this phase. No simulation feeds the real camera counter.
-
-## Structure and integration boundaries
-
-```text
-Rep Rivals/
-  docs/                         specification, phase status and physical test checklist
-  backend/                      Express HTTP server, Prisma client and health checks
-  UI design/REP RIVALS Fitness Arena/
-    src/app/AppRouter.tsx       real /training route and labeled design reference
-    src/features/
-      computer-vision/         geometry, counter, pose tracker, camera ownership, hook
-      solo-training/          presentation and styles
-    scripts/                   reproducible local vision assets
-    tests/browser/             permission, responsiveness and model smoke tests
-```
-
-`AcceptedRep` in `computer-vision/types.ts` carries local evidence. The hook accepts an `onRep` callback for later networking integration. The server will need to authenticate the player and validate ordering, rate and match state before broadcasting an official score. Camera frames and pose history stay on the device.
-
-## Checks
-
-```powershell
-pnpm test
-pnpm typecheck
-pnpm build
-pnpm exec playwright install chromium
-pnpm test:browser
-```
-
-Browser tests use Chromium's explicitly fake camera test pattern. They test model initialization, inference on a no-person feed, permission errors and resource release. They do **not** establish physical rep-count accuracy. Playwright starts and stops a local Vite server on port 5173; that port must be free.
-
-See [phase status and real-device checklist](docs/PHASE-1.md). A complete two-player demonstration is not available yet.
-
-## Deployment and remaining scope
-
-Not deployed. A future static deployment must run `pnpm setup:vision` before `pnpm build`, publish `dist`, and rewrite application routes to `index.html` while serving model/WASM assets as files. Camera access requires HTTPS except on localhost. Plain HTTP to a LAN IP generally cannot access the camera.
-
-Remaining P0 work includes player profiles, saved workouts, private Socket.IO rooms, server-controlled timing and scoring, transactional results and rewards, and animated 3D avatars. P1 covers dashboard/history, ranks, daily challenges and cosmetics. The [master specification](docs/MASTER-SPECIFICATION.md) lists the later exercise detectors and matchmaking features.
-
-The backend uses a pooled Neon connection for application traffic. Future migrations require a separate direct connection. Plan to host the HTTP and Socket.IO server on a persistent Node host.
-
-References: [MediaPipe web guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js), [PoseLandmarker API](https://developers.google.com/edge/api/mediapipe/js/tasks-vision.poselandmarker). The installed package declarations were checked for the timestamped `detectForVideo(video, timestampMs)` signature.
+See the [camera baseline](docs/PHASE-1.md), [Android packaging](docs/ANDROID-PHASE-A.md), [session security](docs/PHASE-2D.md), [Render activation status](docs/PHASE-3A.md), and [product verification and limitations](docs/MASTER-PRODUCT-COMPLETION.md).

@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useSoloPersistence } from "../game/SoloPersistence"
 import { Link } from "react-router-dom"
 import {
   ArrowLeft,
@@ -15,7 +16,16 @@ import { reading } from "../computer-vision/calibrationDiagnostics"
 import "./training.css"
 
 export default function TrainingPage() {
-  const cv = usePushUpCamera()
+  const [saveOnline, setSaveOnline] = useState(() => new URLSearchParams(location.search).get("save") === "1")
+  const persistence = useSoloPersistence(saveOnline)
+  const cv = usePushUpCamera(rep => persistence.rep(rep.sequenceNumber))
+  const wasRunning = useRef(false)
+  useEffect(() => {
+    if (cv.running && !wasRunning.current) persistence.begin()
+    if (!cv.running && wasRunning.current) persistence.close(false)
+    wasRunning.current = cv.running
+  }, [cv.running])
+  const pendingSolo = !cv.running && persistence.game.room?.kind === 'solo' && persistence.game.room.phase === 'ACTIVE'
   const [overlay, setOverlay] = useState(true)
   const [mirror, setMirror] = useState(false)
   const sample = cv.diagnostics
@@ -43,8 +53,9 @@ export default function TrainingPage() {
           </h1>
           <p>Push-ups. Your movement drives the count.</p>
         </div>
-        <span className="training-label">LOCAL SESSION · NO REWARDS</span>
+        <span className="training-label">{cv.running || cv.finished ? persistence.message : persistence.game.state === 'Connected' ? 'Signed in · workouts can be saved' : 'Local session · no rewards'}</span>
       </div>
+      {pendingSolo && <button onClick={() => void persistence.game.send('leave',{id:persistence.game.room!.id}).catch(()=>{})}>Discard interrupted workout</button>}
       <div className="training-grid">
         <section className="camera-panel" aria-label="Camera and tracking">
           <div className="camera-heading">
@@ -90,6 +101,8 @@ export default function TrainingPage() {
             )}
           </div>
           <div className="camera-options">
+            <label><input type="checkbox" checked={saveOnline} disabled={cv.running} onChange={e=>setSaveOnline(e.target.checked)}/> Save to player profile</label>
+            {saveOnline && persistence.game.state !== 'Connected' && <span>{persistence.game.state} · <Link to="/login">Log in</Link></span>}
             <label>
               <input
                 type="checkbox"
@@ -148,7 +161,7 @@ export default function TrainingPage() {
                   <Crosshair size={18} />
                   Recalibrate
                 </button>
-                <button onClick={() => cv.stop()}>
+                <button onClick={() => { persistence.close(cv.running); cv.stop() }}>
                   <Square size={18} />
                   {cv.running ? "End session" : "Stop camera"}
                 </button>
@@ -170,7 +183,7 @@ export default function TrainingPage() {
             </div>
             <p>
               {cv.finished
-                ? "Not saved. Accounts and persistent workouts will be connected in a later phase."
+                ? persistence.message
                 : "Only complete, tracked top → bottom → top cycles count."}
             </p>
           </section>

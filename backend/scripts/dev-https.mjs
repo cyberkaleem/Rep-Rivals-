@@ -8,18 +8,25 @@ import { createApp } from '../dist/app.js'
 import { createAuthService } from '../dist/auth/service.js'
 import { createDatabase } from '../dist/db/client.js'
 
+import { createGame } from '../dist/game/socket.js'
+import { gameStore } from '../dist/game/store.js'
+
 export async function startDevelopmentHttps(pooled) {
   const db = createDatabase(pooled)
+  const auth = createAuthService(db.prisma)
+  // The browser rival reaches this same room manager through its local Vite proxy.
+  const origins = ['http://127.0.0.1:5173', 'http://localhost:5173']
+  const game = createGame(auth, gameStore(db.prisma), origins)
   const server = createServer({ cert: readFileSync(certificate), key: readFileSync(privateKey), minVersion: 'TLSv1.2' },
-    createApp([], db.check, createAuthService(db.prisma), true))
+    createApp(origins, db.check, auth, true, [], game))
+  const closeGame = game.attach(server)
   try {
     server.listen(4443, '127.0.0.1')
     await once(server, 'listening')
   } catch (error) { await db.close(); throw error }
   return { server, async close() {
-    const closed = new Promise(resolve => server.close(resolve))
     server.closeAllConnections()
-    await closed
+    await closeGame()
     await db.close()
   } }
 }

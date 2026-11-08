@@ -5,6 +5,7 @@ import { ApiError, errorHandler } from './middleware/errors.js'
 import { healthy, healthRouter } from './routes/health.js'
 import { authRouter } from './routes/auth.js'
 import type { AuthService } from './auth/service.js'
+import type { Game } from './game/socket.js'
 
 function baseApp() {
   const app = express()
@@ -25,7 +26,7 @@ export function createHealthOnlyApp() {
   return app
 }
 
-export function createApp(origins: string[], checkDatabase: () => Promise<void>, auth?: AuthService, production = false, trustedProxies: string[] = []) {
+export function createApp(origins: string[], checkDatabase: () => Promise<void>, auth?: AuthService, production = false, trustedProxies: string[] = [], game?: Game) {
   const app = baseApp()
   if (trustedProxies.length) app.set('trust proxy', trustedProxies)
   app.use(cors({
@@ -38,7 +39,7 @@ export function createApp(origins: string[], checkDatabase: () => Promise<void>,
   }))
   app.use(express.json({ limit: '16kb' }))
   app.use('/api/health', healthRouter(checkDatabase))
-  if (auth) app.use('/api/auth', authRouter(auth, production, origins))
+  if (auth) app.use('/api/auth', authRouter(auth, production, origins, game))
   app.use((_req, _res, next) => next(new ApiError(404, 'NOT_FOUND', 'Route not found.')))
   app.use(errorHandler)
   return app

@@ -12,14 +12,15 @@ export class AccountError extends Error {
 }
 
 type Operation = 'register' | 'login' | 'logout' | 'me'
-const native = registerPlugin<{
+export const nativeAccount = registerPlugin<{
+  request(options: { operation: 'ticket' }): Promise<{status:number;ticket?:string;origin?:string}>
   request(options: { operation: Operation } & Record<string, string>): Promise<{ status: number; user?: PlayerAccount }>
 }>('RepRivalsAccount')
 
 async function request(path: Operation, body?: Record<string, string>, signal?: AbortSignal): Promise<PlayerAccount | undefined> {
   if (Capacitor.getPlatform() === 'android') {
     signal?.throwIfAborted()
-    const result = await native.request({ ...body, operation: path })
+    const result = await nativeAccount.request({ ...body, operation: path })
     signal?.throwIfAborted()
     if (result.status === 204 && path === 'logout') return
     if ((result.status === 200 || result.status === 201) && result.user) return result.user

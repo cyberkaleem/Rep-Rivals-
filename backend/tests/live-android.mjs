@@ -40,7 +40,7 @@ async function inspectWebView() {
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject })
   } catch (error) { adb('forward', '--remove', 'tcp:' + port); throw error }
   let seq = 0
-  async function evaluate(expression) {
+  async function command(method, params) {
     const id = ++seq
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(Error('WebView timeout')), 6000)
@@ -49,10 +49,18 @@ async function inspectWebView() {
         if (msg.id !== id) return
         clearTimeout(timer)
         if (msg.error || msg.result.exceptionDetails) reject(Error('WebView evaluation failed'))
-        else resolve(msg.result.result.value)
+        else resolve(msg.result.result?.value)
       }
-      ws.send(JSON.stringify({ id, method: 'Runtime.evaluate', params: { expression, returnByValue: true, awaitPromise: true } }))
+      ws.send(JSON.stringify({ id, method, params }))
     })
+  }
+  const evaluate = expression => command('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
+  async function tapLink(path) {
+    const selector = JSON.stringify('a[href="' + path + '"]')
+    await waitFor('!!document.querySelector('+selector+')')
+    const point = await evaluate('(() => {const a=document.querySelector('+selector+'); a.scrollIntoView({block:"center"}); const r=a.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}})()')
+    await command('Input.dispatchMouseEvent', { type:'mousePressed', ...point, button:'left', clickCount:1 })
+    await command('Input.dispatchMouseEvent', { type:'mouseReleased', ...point, button:'left', clickCount:1 })
   }
   async function waitFor(expression) {
     const deadline = Date.now() + 30000
@@ -79,7 +87,7 @@ async function inspectWebView() {
       return true
     }).toString() + ')(' + JSON.stringify(fields) + ')')
   }
-  return { pid, evaluate, waitFor, visit, submit, close() { ws.close(); adb('forward', '--remove', 'tcp:' + port) } }
+  return { pid, evaluate, waitFor, visit, tapLink, submit, close() { ws.close(); adb('forward', '--remove', 'tcp:' + port) } }
 }
 
 function replay(header, path = '/api/auth/native/me', cookie) {
@@ -163,6 +171,15 @@ async function run() {
     step('verified TLS replay and browser/native isolation')
     assert.equal(await replay(header), 200)
     assert.equal(await replay(null, '/api/auth/me', '__Host-rr_session=' + header.slice(7)), 401)
+    if (process.env.REP_RIVALS_VERIFY_GAME === '1') {
+      step('Android dashboard, WebGL and two-player battle')
+      await (await import('./android-game.mjs')).verifyAndroidGame(ui, db, () => adb('shell','input','keyevent','4'))
+    }
+    if (process.env.REP_RIVALS_VERIFY_PHYSICAL === '1') {
+      step('supervised three-rep Android camera workout')
+      adb('shell','pm','grant',pkg,'android.permission.CAMERA')
+      await (await import('./android-workout.mjs')).verifyPhysicalWorkout(ui, db, id)
+    }
     step('backend outage, retry and preserved session')
     await api.close(); api = undefined
     await ui.visit('/login'); await ui.waitFor('!!document.querySelector("form")')
@@ -197,6 +214,7 @@ async function run() {
     assert.ok(!adb('exec-out', 'run-as', pkg, 'cat', 'shared_prefs/rep_rivals_session.xml').includes('<string'))
     for (const pid of pids) {
       const log = adb('logcat', '-d', '--pid=' + pid, '-t', '10000')
+      assert.ok(!/FATAL EXCEPTION:|Uncaught (?:TypeError|ReferenceError|SyntaxError|RangeError):/.test(log), 'Unexpected app runtime exception')
       assert.ok(!log.includes(password) && !log.includes(header.slice(7)) && !log.includes(revoked.slice(7)))
     }
     console.info('Pixel 7 real HTTPS authentication, restart, outage, expiry and revocation passed.')
@@ -222,6 +240,10 @@ async function run() {
 }
 
 run().catch(error => {
+  for (const frame of error.stack?.split('\n') ?? []) {
+    const match = frame.match(/(android-game|game-rival)\.mjs:(\d+):\d+/)
+    if (match) console.error('Gameplay test location:', match[1], match[2])
+  }
   const line = error.stack?.split('\n').slice(1).map(s => /live-android\.mjs:(\d+):\d+/.exec(s)?.[1]).find(Boolean)
   const kind = error.code === 'ERR_ASSERTION' ? 'assertion' : error.name === 'TypeError' ? 'type' : 'operation'
   console.error('Android live check stopped during:', stage, '(' + kind + ', verification line ' + (line ?? 'unknown') + ')')

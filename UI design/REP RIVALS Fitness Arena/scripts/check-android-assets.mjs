@@ -51,7 +51,9 @@ for (const file of await files(assets)) {
     `Server configuration in ${path.relative(assets, file)}`)
 }
 const html = await readFile(path.join(packaged, 'index.html'), 'utf8')
-assert.ok(html.includes("connect-src 'self'; frame-src 'none'"), 'Use the packaged Android connection policy')
+const api = process.env.REP_RIVALS_EMULATOR_TLS === '1' ? 'https://127.0.0.1:4443' : process.env.REP_RIVALS_ANDROID_API_ORIGIN
+const socket = api ? ' ' + api.replace('https:', 'wss:') : ''
+assert.ok(html.includes("connect-src 'self'" + socket + "; frame-src 'none'"), 'Use only the configured game socket')
 assert.equal(config.loggingBehavior, 'none', 'Capacitor must not log authentication arguments')
 assert.ok(!html.includes('/@vite/client'), 'Development client in packaged HTML')
 console.log(`Android assets verified: ${builtFiles.length} build files match, versioned model/WASM match, no database configuration found.`)

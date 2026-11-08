@@ -1,0 +1,22 @@
+.game-shell {--orange:#ff702b;--paper:#f4eee5;max-width:1160px;margin:auto;padding:0 clamp(16px,4vw,56px) 64px;color:var(--paper);font-family:Inter,Arial,sans-serif}
+.game-shell * {box-sizing:border-box}.game-shell a {color:inherit;text-decoration:none}
+.game-nav,.game-nav nav,.game-actions,.stat-row,.history-row,.swatches,.scoreboard,.match-clock,.game-cta {display:flex;align-items:center;gap:14px}
+.game-nav {justify-content:space-between;min-height:76px;border-bottom:1px solid #323435}.game-nav nav {font-size:14px;font-weight:650}.game-nav nav a:hover,.game-shell a:hover {color:var(--orange)}
+.game-logo,.game-shell h1,.game-shell h2 {font-weight:900;letter-spacing:-.055em;line-height:1.02}.game-logo {font-size:clamp(18px,4vw,28px);white-space:nowrap}.game-shell em {color:var(--orange);font-style:normal}
+.game-hero {display:flex;align-items:flex-end;min-height:min(65vh,600px);padding:clamp(22px,5vw,60px);background:linear-gradient(90deg,#0e1115f7,#0e111580 66%,#0e11152b),url('../../assets/rep-rivals-hero.jpg') center/cover;border-radius:5px;margin-top:22px}
+.game-hero h1 {font-size:clamp(52px,8vw,100px);margin:12px 0}.game-hero p:not(.eyebrow){max-width:380px;color:#e2ded9;margin-bottom:24px}
+.game-shell .eyebrow {color:var(--orange);text-transform:uppercase;font-size:12px;letter-spacing:.13em;font-weight:750}
+.game-shell .game-cta,.game-shell button,.game-actions>a {display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 17px;border-radius:5px;font-weight:700;cursor:pointer}
+.game-shell button,.game-actions>a {background:#252a30;border:1px solid #484b4c;color:var(--paper)}.game-shell .game-cta {background:var(--orange);border:1px solid var(--orange);color:#18120f}.game-shell button:disabled {opacity:.55}
+.game-title {padding:32px 0 20px}.game-title h1 {font-size:clamp(44px,7vw,76px);margin:7px 0}
+.game-tiles,.game-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.game-tiles {grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
+.game-card,.game-tiles>a {background:#171b20;border:1px solid #34383c;border-radius:8px;padding:clamp(16px,3vw,32px);margin-bottom:14px;min-width:0}
+.game-tiles>a {display:grid;gap:8px}.game-tiles svg,.battle-result svg {color:var(--orange)}.game-tiles strong,.game-shell h2 {font-size:clamp(22px,3vw,34px)}
+.game-card h2 {margin:8px 0 14px}.game-card p,.game-card small,.game-tiles span {color:#c7c6c2}.game-card p {margin:12px 0}.game-card small,.history-row small,.scoreboard small {display:block;font-size:13px}
+.game-card label,.game-card input {display:block}.game-card input {width:100%;margin:8px 0 16px;padding:12px;background:#0c0f13;color:white;border:1px solid #555;border-radius:4px;font:inherit}
+.stat-row,.history-row {justify-content:space-between;border-bottom:1px solid #363a3d;padding:11px 0}.stat-row strong {margin-left:auto}.game-card progress {width:100%;accent-color:var(--orange)}
+.big-score,.match-clock,.scoreboard b {font-size:44px;font-weight:800;font-variant-numeric:tabular-nums}.big-score small{display:inline}.game-actions {margin:6px 0 18px;flex-wrap:wrap}
+.athletes {height:210px;background:radial-gradient(ellipse at 50% 100%,#373d43,#13171b 70%);border-radius:5px;overflow:hidden;position:relative}.athletes canvas {display:block;width:100%;height:100%}.athletes button {position:absolute;z-index:1}
+.swatches {margin:12px 0 0;flex-wrap:wrap;gap:6px}.swatches button {font-size:13px;text-transform:capitalize}.swatches [aria-pressed=true] {border-color:var(--orange)}
+.scoreboard {justify-content:space-around;text-align:center;padding:12px}.scoreboard>div {min-width:0;overflow-wrap:anywhere}.match-clock {justify-content:center}.game-error {color:#ffa790}.battle-result {padding:16px 0}
+@media(max-width:650px){.game-grid,.game-tiles{grid-template-columns:1fr}.game-nav nav{gap:9px;font-size:12px}.game-hero{min-height:420px}.game-nav{min-height:62px}.game-tiles>a{margin:0}.game-title{padding-top:24px}}

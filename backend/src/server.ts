@@ -6,19 +6,26 @@ import { ConfigurationError, parseRuntimeConfig, readSettings } from './config/e
 import { createDatabase } from './db/client.js'
 import { createAuthService } from './auth/service.js'
 
+import { createGame } from './game/socket.js'
+import { gameStore } from './game/store.js'
+
 function runtime(config: ReturnType<typeof parseRuntimeConfig>) {
   if (config.healthOnly) return { app: createHealthOnlyApp(), disconnect: undefined }
   const database = createDatabase(config.databaseUrl)
-  return { app: createApp(config.origins, database.check, createAuthService(database.prisma), config.production, config.trustedProxies), disconnect: database.close }
+  const auth = createAuthService(database.prisma)
+  const game = createGame(auth, gameStore(database.prisma), config.origins)
+  return { app: createApp(config.origins, database.check, auth, config.production, config.trustedProxies, game), game, disconnect: database.close }
 }
 
 export async function startServer(config = parseRuntimeConfig(readSettings())) {
-  const { app, disconnect } = runtime(config)
+  const { app, disconnect, game } = runtime(config)
   const server = createServer(app)
+  const closeGame = game?.attach(server)
   try {
     server.listen(config.port, config.host)
     await once(server, 'listening')
   } catch (error) {
+    await closeGame?.()
     await disconnect?.()
     throw error
   }
@@ -28,7 +35,8 @@ export async function startServer(config = parseRuntimeConfig(readSettings())) {
     closing ??= (async () => {
       const limit = setTimeout(() => server.closeAllConnections(), 12_000).unref()
       try {
-        await new Promise<void>((resolve, reject) =>
+        if (closeGame) await closeGame()
+        else await new Promise<void>((resolve, reject) =>
           server.close(error => error ? reject(error) : resolve()))
       } finally {
         clearTimeout(limit)

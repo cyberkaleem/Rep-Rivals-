@@ -35,7 +35,10 @@ react(),
       },
     },
     server: {
-      proxy: { '/api': process.env.REP_RIVALS_API_PROXY || 'http://127.0.0.1:4000' },
+      proxy: {
+        '/api': process.env.REP_RIVALS_API_PROXY || 'http://127.0.0.1:4000',
+        '/socket.io': { target: process.env.REP_RIVALS_API_PROXY || 'http://127.0.0.1:4000', ws: true },
+      },
       host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
       port: parseInt(process.env.PORT || '8443'),
       strictPort: true,
@@ -58,8 +61,11 @@ function androidPackaging(): Plugin {
     name: 'rep-rivals-android-packaging',
     apply: 'build',
     transformIndexHtml(html) {
+      const origin = process.env.REP_RIVALS_EMULATOR_TLS === '1' ? 'https://127.0.0.1:4443' : process.env.REP_RIVALS_ANDROID_API_ORIGIN
+      if (origin && (new URL(origin).origin !== origin || !origin.startsWith('https://'))) throw Error('Invalid Android API origin')
+      const socket = origin ? ' ' + origin.replace('https:', 'wss:') : ''
       return html.replace("connect-src 'self' ws://localhost:* ws://127.0.0.1:*",
-        "connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; script-src 'self' 'wasm-unsafe-eval'")
+        "connect-src 'self'" + socket + "; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; script-src 'self' 'wasm-unsafe-eval'")
     },
   }
 }

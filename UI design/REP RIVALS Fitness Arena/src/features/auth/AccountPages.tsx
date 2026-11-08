@@ -77,7 +77,8 @@ export function AccountPage() {
     {error && <p role="alert">{error}</p>}
     {player ? <>
       <dl><dt>Username</dt><dd>{player.username}</dd><dt>Email</dt><dd>{player.email}</dd></dl>
-      <Link className="account-action" to="/training">Start solo training</Link>
+      <Link to="/dashboard">Open player dashboard →</Link>
+      <Link className="account-action" to="/training?save=1">Start solo training</Link>
       <button onClick={logout} disabled={busy}>{busy ? 'Logging out…' : 'Log out'}</button>
     </> : error ? <button onClick={() => setAttempt(attempt + 1)}>Retry</button> : <p role="status">Checking session…</p>}
   </AccountLayout>

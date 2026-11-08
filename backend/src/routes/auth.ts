@@ -12,7 +12,9 @@ const registration = z.strictObject({
 })
 const credentials = z.strictObject({ email, password: z.string().min(1).max(128) })
 
-export function authRouter(auth: AuthService, production: boolean, origins: string[]) {
+import type { Game } from '../game/socket.js'
+
+export function authRouter(auth: AuthService, production: boolean, origins: string[], game?: Game) {
   const router = Router()
   const cookie = sessionCookie(production)
   const attempts = rateLimit({
@@ -43,6 +45,13 @@ export function authRouter(auth: AuthService, production: boolean, origins: stri
       }
       if (req.method === 'POST' && !req.is('application/json')) throw new ApiError(415, 'JSON_REQUIRED', 'Send a JSON request.')
       next()
+    })
+    if (game) group.post('/ticket', async (req, res) => {
+      z.strictObject({}).parse(req.body)
+      const hash = digest(req)
+      await auth.me(hash)
+      if (!hash) throw new ApiError(401, 'AUTH_REQUIRED', 'Please sign in.')
+      res.json({ ticket: game.issue(hash, native ? 'https://localhost' : req.get('Origin')!) })
     })
     group.post('/register', attempts, async (req, res) => {
       const { username, email, password } = registration.parse(req.body)
