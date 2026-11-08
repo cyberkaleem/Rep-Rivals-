@@ -34,6 +34,34 @@ test('the native router ignores spoofed forwarding from an untrusted peer', asyn
   assert.equal((await res.json()).error.code, 'HTTPS_REQUIRED')
 })
 
+async function loginAttempt(base: string, forwardedFor: string, native = false) {
+  return fetch(base + (native ? '/native/login' : '/login'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json', 'X-Forwarded-For': forwardedFor, 'X-Forwarded-Proto': 'https',
+      ...(native ? {} : { Origin: origin }),
+    },
+    body: '{}',
+  })
+}
+
+test('rotating forwarded addresses from an untrusted peer cannot evade the login limit', async t => {
+  const base = await listen(t, [])
+  for (let i = 1; i <= 21; i++) {
+    const res = await loginAttempt(base, '192.0.2.' + i)
+    assert.equal(res.status, i <= 20 ? 400 : 429)
+  }
+})
+
+test('the nearest untrusted address shares a limit across transports and a second client has its own limit', async t => {
+  const base = await listen(t, ['127.0.0.1'])
+  for (let i = 1; i <= 21; i++) {
+    const res = await loginAttempt(base, '192.0.2.' + i + ', 198.51.100.4', i % 2 === 1)
+    assert.equal(res.status, i <= 20 ? 400 : 429)
+  }
+  assert.equal((await loginAttempt(base, '192.0.2.21, 198.51.100.5', true)).status, 400)
+})
+
 test('a known proxy is supported; browser traffic and native credentials cannot cross lanes', async t => {
   const base = await listen(t, ['127.0.0.1'])
   const headers = { 'X-Forwarded-Proto': 'https', 'Content-Type': 'application/json' }

@@ -15,9 +15,9 @@ services:
         value: production
       - key: HOST
         value: 0.0.0.0
+      - key: REP_RIVALS_HEALTH_ONLY
+        value: "true"
       - key: DATABASE_URL
         sync: false
       - key: CORS_ORIGINS
-        sync: false
-      - key: TRUSTED_PROXY_CIDRS
         sync: false
